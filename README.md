@@ -26,7 +26,7 @@ NDLKotenOCR Web 版は、国立国会図書館が開発した古典籍 OCR ア�
 
 ```bash
 # リポジトリのクローン
-git clone https://github.com/ndl-lab/ndlkotenocr-web.git
+git clone https://github.com/yuta1984/ndlkotenocr-lite-web.git
 cd ndlkotenocr-web
 
 # 依存パッケージのインストール
