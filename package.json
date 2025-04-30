@@ -1,0 +1,32 @@
+{
+  "name": "ndlkotenocr-web",
+  "version": "0.1.0",
+  "description": "Web version of NDL Koten OCR for ancient Japanese text recognition",
+  "main": "src/index.js",
+  "scripts": {
+    "start": "webpack serve --mode development --open",
+    "build": "webpack --mode production",
+    "dev": "webpack serve --mode development --watch"
+  },
+  "keywords": [
+    "ocr",
+    "japanese",
+    "koten",
+    "ndl",
+    "onnx",
+    "webassembly"
+  ],
+  "author": "NDL",
+  "license": "MIT",
+  "dependencies": {
+    "onnxruntime-web": "^1.14.0",
+    "js-yaml": "^4.1.0"
+  },
+  "devDependencies": {
+    "copy-webpack-plugin": "^11.0.0",
+    "html-webpack-plugin": "^5.5.0",
+    "webpack": "^5.76.0",
+    "webpack-cli": "^5.0.1",
+    "webpack-dev-server": "^4.13.1"
+  }
+}

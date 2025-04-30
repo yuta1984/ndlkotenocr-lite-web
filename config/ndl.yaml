@@ -1,0 +1,56 @@
+# NDLKotenOCR Web版 設定ファイル
+# このファイルは、OCRの動作設定を定義します
+
+# レイアウト認識設定
+layout_detection:
+  # スコアの閾値（0.0-1.0）
+  score_threshold: 0.3
+
+  # NMSの閾値（0.0-1.0）
+  nms_threshold: 0.4
+
+  # 最大検出数
+  max_detections: 100
+
+  # 入力サイズ
+  input_shape: [1, 3, 1024, 1024]
+
+# 文字認識設定
+text_recognition:
+  # 入力サイズ
+  input_shape: [1, 3, 32, 384]
+
+  # 最大文字列長
+  max_length: 25
+
+# 読み順処理設定
+reading_order:
+  # 縦書きモード（true: 縦書き, false: 横書き）
+  vertical_mode: true
+
+# 出力生成設定
+output_generation:
+  # XML出力の設定
+  xml:
+    # 信頼度スコアを含める
+    include_confidence: true
+    # 整形出力
+    pretty_print: true
+    # 文字エンコーディング
+    encoding: 'UTF-8'
+
+  # JSON出力の設定
+  json:
+    # 信頼度スコアを含める
+    include_confidence: true
+    # 整形出力
+    pretty_print: true
+    # メタデータを含める
+    include_metadata: true
+
+  # テキスト出力の設定
+  txt:
+    # 行区切り文字
+    separator: '\n'
+    # バウンディングボックス情報を含める
+    include_bounding_box: false

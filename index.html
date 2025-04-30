@@ -1,0 +1,289 @@
+<!DOCTYPE html>
+<html lang="ja">
+  <head>
+    <meta charset="UTF-8" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1.0"
+    />
+    <title>NDL古典籍OCR Lite Web版</title>
+    <style>
+      body {
+        font-family: 'Segoe UI', Tahoma, Geneva, Verdana,
+          sans-serif;
+        margin: 0;
+        padding: 20px;
+        background-color: #f5f5f5;
+      }
+      .container {
+        max-width: 1200px;
+        margin: 0 auto;
+        background-color: white;
+        padding: 20px;
+        border-radius: 8px;
+        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+      }
+      h1 {
+        color: #333;
+        text-align: center;
+      }
+      .upload-section {
+        margin: 20px 0;
+        padding: 20px;
+        border: 2px dashed #ccc;
+        border-radius: 8px;
+        text-align: center;
+      }
+      .result-section {
+        margin-top: 30px;
+      }
+      .tabs {
+        display: flex;
+        margin-bottom: 10px;
+      }
+      .tab {
+        padding: 10px 20px;
+        cursor: pointer;
+        background-color: #eee;
+        border: 1px solid #ccc;
+        border-bottom: none;
+        border-radius: 5px 5px 0 0;
+        margin-right: 5px;
+      }
+      .tab.active {
+        background-color: white;
+        border-bottom: 1px solid white;
+      }
+      .tab-content {
+        display: none;
+        padding: 20px;
+        border: 1px solid #ccc;
+        border-radius: 0 5px 5px 5px;
+      }
+      .tab-content.active {
+        display: block;
+      }
+      #image-preview {
+        max-width: 100%;
+        margin-top: 20px;
+      }
+      #loading {
+        display: none;
+        text-align: center;
+        margin: 20px 0;
+      }
+      pre {
+        background-color: #f8f8f8;
+        padding: 10px;
+        border-radius: 5px;
+        overflow-x: auto;
+      }
+      .canvas-container {
+        position: relative;
+        margin-top: 20px;
+      }
+      #result-canvas {
+        border: 1px solid #ddd;
+        max-width: 100%;
+      }
+      button {
+        background-color: #4caf50;
+        color: white;
+        padding: 10px 20px;
+        border: none;
+        border-radius: 4px;
+        cursor: pointer;
+        font-size: 16px;
+      }
+      button:hover {
+        background-color: #45a049;
+      }
+      button:disabled {
+        background-color: #cccccc;
+        cursor: not-allowed;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <h1>NDL古典籍OCR Lite Web版</h1>
+
+      <div class="upload-section">
+        <h2>画像をアップロード</h2>
+        <input
+          type="file"
+          id="image-upload"
+          accept="image/*"
+        />
+        <p>または画像をここにドラッグ&ドロップ</p>
+        <div id="image-preview-container">
+          <img
+            id="image-preview"
+            style="display: none"
+            src="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7"
+            alt="画像プレビュー"
+          />
+        </div>
+        <button id="process-button" disabled>
+          OCR処理を実行
+        </button>
+      </div>
+
+      <div id="loading">
+        <p>処理中...</p>
+        <progress
+          id="progress-bar"
+          value="0"
+          max="100"
+        ></progress>
+      </div>
+
+      <div class="result-section" style="display: none">
+        <h2>OCR結果</h2>
+
+        <div class="canvas-container">
+          <canvas id="result-canvas"></canvas>
+        </div>
+
+        <div class="tabs">
+          <div class="tab active" data-tab="text">
+            テキスト
+          </div>
+          <div class="tab" data-tab="xml">XML</div>
+          <div class="tab" data-tab="json">JSON</div>
+        </div>
+
+        <div class="tab-content active" id="text-content">
+          <pre id="text-result"></pre>
+        </div>
+
+        <div class="tab-content" id="xml-content">
+          <pre id="xml-result"></pre>
+        </div>
+
+        <div class="tab-content" id="json-content">
+          <pre id="json-result"></pre>
+        </div>
+      </div>
+    </div>
+
+    <script src="bundle.js"></script>
+    <script>
+      document.addEventListener(
+        'DOMContentLoaded',
+        function () {
+          // タブ切り替え
+          const tabs = document.querySelectorAll('.tab');
+          tabs.forEach((tab) => {
+            tab.addEventListener('click', function () {
+              // アクティブなタブを切り替え
+              document
+                .querySelector('.tab.active')
+                .classList.remove('active');
+              this.classList.add('active');
+
+              // タブコンテンツを切り替え
+              const tabName = this.getAttribute('data-tab');
+              document
+                .querySelector('.tab-content.active')
+                .classList.remove('active');
+              document
+                .getElementById(`${tabName}-content`)
+                .classList.add('active');
+            });
+          });
+
+          // 画像アップロード処理
+          const imageUpload =
+            document.getElementById('image-upload');
+          const imagePreview =
+            document.getElementById('image-preview');
+          const processButton = document.getElementById(
+            'process-button'
+          );
+
+          imageUpload.addEventListener(
+            'change',
+            function (e) {
+              const file = e.target.files[0];
+              if (file) {
+                const reader = new FileReader();
+                reader.onload = function (event) {
+                  imagePreview.src = event.target.result;
+                  imagePreview.style.display = 'block';
+                  processButton.disabled = false;
+                };
+                reader.readAsDataURL(file);
+              }
+            }
+          );
+
+          // ドラッグ&ドロップ処理
+          const uploadSection = document.querySelector(
+            '.upload-section'
+          );
+
+          uploadSection.addEventListener(
+            'dragover',
+            function (e) {
+              e.preventDefault();
+              this.style.borderColor = '#4CAF50';
+            }
+          );
+
+          uploadSection.addEventListener(
+            'dragleave',
+            function () {
+              this.style.borderColor = '#ccc';
+            }
+          );
+
+          uploadSection.addEventListener(
+            'drop',
+            function (e) {
+              e.preventDefault();
+              this.style.borderColor = '#ccc';
+
+              const file = e.dataTransfer.files[0];
+              if (file && file.type.match('image.*')) {
+                imageUpload.files = e.dataTransfer.files;
+                const reader = new FileReader();
+                reader.onload = function (event) {
+                  imagePreview.src = event.target.result;
+                  imagePreview.style.display = 'block';
+                  processButton.disabled = false;
+                };
+                reader.readAsDataURL(file);
+              }
+            }
+          );
+
+          // OCR処理実行ボタン
+          processButton.addEventListener(
+            'click',
+            function () {
+              // ここでOCR処理を呼び出す
+              // 実際の処理はbundle.jsに実装
+              document.getElementById(
+                'loading'
+              ).style.display = 'block';
+              this.disabled = true;
+
+              // 処理完了後に結果を表示（実際はbundle.jsから呼び出される）
+              // この部分はデモ用のダミーコード
+              setTimeout(function () {
+                document.getElementById(
+                  'loading'
+                ).style.display = 'none';
+                document.querySelector(
+                  '.result-section'
+                ).style.display = 'block';
+                processButton.disabled = false;
+              }, 2000);
+            }
+          );
+        }
+      );
+    </script>
+  </body>
+</html>
