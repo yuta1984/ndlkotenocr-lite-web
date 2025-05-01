@@ -2,6 +2,11 @@
 
 NDLKotenOCR Web 版は、国立国会図書館が開発した古典籍 OCR アプリケーション [ndlkotenocr-lite](https://github.com/ndl-lab/ndlkotenocr-lite) の Web ブラウザ版です。WebAssembly（WASM）と ONNX Runtime Web を使用して、ブラウザ上で古典籍の文字認識を行うことができます。
 
+## デモ
+
+[こちら](https://ndlkotenocr-lite-web.netlify.app/)で利用可能です。
+初回実行時はモデルのダウンロードが必要のため，実行に時間がかかります。
+
 ## 機能
 
 - 画像内のテキスト領域の検出（レイアウト認識）
