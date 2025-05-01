@@ -55,7 +55,10 @@ export class NDLKotenOCR {
     progressCallback = null
   ) {
     this.progressCallback = progressCallback;
-    this.updateProgress(0, '初期化中...');
+    this.updateProgress(
+      0,
+      '初期化中...（初回はモデルのダウンロードに時間がかかります）'
+    );
     this.configPath =
       layoutConfigPath || recognizerConfigPath || null;
 
@@ -72,6 +75,10 @@ export class NDLKotenOCR {
       this.updateProgress(
         10,
         'レイアウト認識モデルをロードしました'
+      );
+      this.updateProgress(
+        10,
+        '文字認識モデルのロードを開始します...'
       );
 
       // テキスト認識器の初期化
