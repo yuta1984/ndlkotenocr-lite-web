@@ -110,6 +110,17 @@
         border-radius: 5px;
         overflow-x: auto;
       }
+      #text-result {
+        height: 400px;
+        width: 100%;
+        overflow-y: auto;
+        white-space: pre-wrap;
+        writing-mode: vertical-rl;
+        font-family: 'MS Mincho', 'ヒラギノ明朝 ProN W3',
+          'Hiragino Mincho ProN', 'HGS明朝E', 'Yu Mincho',
+          'YuMincho', serif;
+      }
+
       .canvas-container {
         position: relative;
         margin-top: 20px;
@@ -143,20 +154,98 @@
       .nav-button:hover:not(:disabled) {
         background-color: #0b7dda;
       }
+
+      .result-container {
+        position: relative;
+      }
+
+      .copy-button {
+        position: absolute;
+        bottom: 10px;
+        right: 10px;
+        background-color: #2196f3;
+        color: white;
+        border: none;
+        border-radius: 4px;
+        padding: 5px 10px;
+        font-size: 12px;
+        cursor: pointer;
+        z-index: 10;
+      }
+
+      .copy-button:hover {
+        background-color: #0b7dda;
+      }
+
+      .copy-button:active {
+        background-color: #0a6bc1;
+      }
+
+      .copy-feedback {
+        position: absolute;
+        top: 10px;
+        right: 80px;
+        background-color: rgba(0, 0, 0, 0.7);
+        color: white;
+        padding: 5px 10px;
+        border-radius: 4px;
+        font-size: 12px;
+        opacity: 0;
+        transition: opacity 0.3s;
+      }
+
+      .copy-feedback.show {
+        opacity: 1;
+      }
     </style>
   </head>
   <body>
+    <a
+      href="https://github.com/yuta1984/ndlkotenocr-lite-web"
+      target="_blank"
+      rel="noopener noreferrer"
+      style="
+        position: absolute;
+        top: 0;
+        right: 0;
+        z-index: 100;
+      "
+    >
+      <img
+        width="149"
+        height="149"
+        src="https://github.blog/wp-content/uploads/2008/12/forkme_right_green_007200.png?resize=149%2C149"
+        alt="Fork me on GitHub"
+        style="border: 0"
+      />
+    </a>
     <div class="container">
-      <h1>NDL古典籍OCR Lite Web版</h1>
+      <h1>NDL古典籍OCR-Lite Web版</h1>
 
       <div class="upload-section">
-        <h2>画像をアップロード</h2>
-        <input
-          type="file"
-          id="image-upload"
-          accept="image/*"
-          multiple
-        />
+        <h2>画像をアップロード（複数選択可）</h2>
+        <div
+          style="
+            display: flex;
+            justify-content: center;
+            gap: 10px;
+            margin-bottom: 10px;
+          "
+        >
+          <input
+            type="file"
+            id="image-upload"
+            accept="image/*"
+            multiple
+          />
+
+          <button
+            id="sample-button"
+            style="background-color: #2196f3"
+          >
+            サンプル
+          </button>
+        </div>
         <p>または画像をここにドラッグ&ドロップ</p>
         <div
           id="image-preview-container"
@@ -229,18 +318,129 @@
         </div>
 
         <div class="tab-content active" id="text-content">
-          <pre id="text-result"></pre>
+          <div class="result-container">
+            <button
+              class="copy-button"
+              data-target="text-result"
+            >
+              コピー
+            </button>
+            <div class="copy-feedback">
+              コピーしました！
+            </div>
+            <pre id="text-result"></pre>
+          </div>
         </div>
 
         <div class="tab-content" id="xml-content">
-          <pre id="xml-result"></pre>
+          <div class="result-container">
+            <button
+              class="copy-button"
+              data-target="xml-result"
+            >
+              コピー
+            </button>
+            <div class="copy-feedback">
+              コピーしました！
+            </div>
+            <pre id="xml-result"></pre>
+          </div>
         </div>
 
         <div class="tab-content" id="json-content">
-          <pre id="json-result"></pre>
+          <div class="result-container">
+            <button
+              class="copy-button"
+              data-target="json-result"
+            >
+              コピー
+            </button>
+            <div class="copy-feedback">
+              コピーしました！
+            </div>
+            <pre id="json-result"></pre>
+          </div>
+        </div>
+      </div>
+
+      <!-- 全ファイルの統合結果ダウンロードセクション -->
+      <div
+        class="download-section"
+        style="
+          margin-top: 30px;
+          padding: 20px;
+          border: 1px solid #ccc;
+          border-radius: 5px;
+          display: none;
+        "
+      >
+        <h3>全ファイルの統合結果をダウンロード</h3>
+        <p>
+          複数の画像を処理した場合、すべての結果を統合したファイルをダウンロードできます。
+        </p>
+        <div
+          style="
+            display: flex;
+            gap: 10px;
+            justify-content: center;
+            margin-top: 15px;
+          "
+        >
+          <button
+            id="download-text-button"
+            class="download-button"
+            style="background-color: #ff9800"
+          >
+            テキストをダウンロード
+          </button>
+          <button
+            id="download-xml-button"
+            class="download-button"
+            style="background-color: #2196f3"
+          >
+            XMLをダウンロード
+          </button>
+          <button
+            id="download-json-button"
+            class="download-button"
+            style="background-color: #9c27b0"
+          >
+            JSONをダウンロード
+          </button>
         </div>
       </div>
     </div>
+
+    <footer
+      style="
+        margin-top: 30px;
+        text-align: center;
+        padding: 20px;
+        color: #666;
+        font-size: 14px;
+        border-top: 1px solid #eee;
+      "
+    >
+      <p>
+        本アプリは
+        <a
+          href="https://github.com/ndl-lab/ndlkotenocr-lite"
+          target="_blank"
+          rel="noopener noreferrer"
+          >NDL古典籍OCR-lite</a
+        >
+        のWeb移植版です。
+      </p>
+      <p>
+        開発者：橋本雄太（国立歴史民俗博物館,
+        <a
+          href="https://x.com/yuta1984"
+          target="_blank"
+          rel="noopener noreferrer"
+          >@yuta1984</a
+        >）
+      </p>
+    </footer>
 
     <script src="bundle.js"></script>
   </body>

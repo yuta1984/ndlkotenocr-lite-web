@@ -371,6 +371,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
   const imageUpload =
     document.getElementById('image-upload');
+  const sampleButton =
+    document.getElementById('sample-button');
   const previewContainer = document.getElementById(
     'image-preview-container'
   );
@@ -535,6 +537,38 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   );
 
+  // サンプル画像ボタンのイベントリスナー
+  sampleButton.addEventListener('click', async () => {
+    // 既存のサムネイルをクリア
+    previewContainer.innerHTML = '';
+    selectedImages = [];
+
+    try {
+      // サンプル画像のURLを設定
+      const sampleImageUrl = 'public/sample.png';
+
+      // 画像をフェッチして File オブジェクトに変換
+      const response = await fetch(sampleImageUrl);
+      const blob = await response.blob();
+      const file = new File([blob], 'sample.png', {
+        type: blob.type,
+      });
+
+      // サムネイル生成
+      const thumbnail = await createThumbnail(file, 0);
+      selectedImages = [thumbnail];
+
+      // サムネイルをコンテナに追加
+      previewContainer.appendChild(thumbnail.element);
+
+      // 処理ボタンを有効化
+      processButton.disabled = false;
+    } catch (error) {
+      console.error('サンプル画像の読み込みエラー:', error);
+      alert('サンプル画像の読み込みに失敗しました。');
+    }
+  });
+
   // 進捗コールバック
   const updateProgress = (progress, message) => {
     // 現在の画像の進捗を全体の進捗に反映
@@ -610,7 +644,10 @@ document.addEventListener('DOMContentLoaded', () => {
     imageSelector.selectedIndex = index;
 
     // 結果の表示
-    textResult.textContent = result.text;
+    textResult.textContent = result.text.replace(
+      /\\n/g,
+      '\n'
+    );
     xmlResult.textContent = result.xml;
     jsonResult.textContent = JSON.stringify(
       result.json,
@@ -714,10 +751,20 @@ document.addEventListener('DOMContentLoaded', () => {
       }
 
       // 結果セクションの表示
-
       document.querySelector(
         '.result-section'
       ).style.display = 'block';
+
+      // 複数画像がある場合は統合ダウンロードセクションを表示
+      if (processedResults.length > 1) {
+        document.querySelector(
+          '.download-section'
+        ).style.display = 'block';
+      } else {
+        document.querySelector(
+          '.download-section'
+        ).style.display = 'none';
+      }
     } catch (error) {
       console.error('エラー:', error);
       alert(
@@ -752,4 +799,154 @@ document.addEventListener('DOMContentLoaded', () => {
       ctx.fillText(`${index + 1}`, x1 + 5, y1 - 5);
     });
   }
+
+  // ファイルダウンロード用のヘルパー関数
+  function downloadFile(content, fileName, contentType) {
+    const a = document.createElement('a');
+    const file = new Blob([content], { type: contentType });
+    a.href = URL.createObjectURL(file);
+    a.download = fileName;
+    a.click();
+    URL.revokeObjectURL(a.href);
+  }
+
+  // ダウンロードボタンのイベントリスナー
+  document
+    .getElementById('download-text-button')
+    .addEventListener('click', () => {
+      if (processedResults.length === 0) return;
+
+      // 画像名の配列を作成
+      const imageNames = selectedImages.map(
+        (image, index) =>
+          image.file.name || `image_${index + 1}`
+      );
+
+      // 統合テキストを生成
+      const combinedText =
+        ocr.outputGenerator.generateCombinedTXT(
+          processedResults,
+          imageNames
+        );
+
+      // ファイル名を生成（現在の日時を含める）
+      const timestamp = new Date()
+        .toISOString()
+        .replace(/[:.]/g, '-')
+        .substring(0, 19);
+      const fileName = `ndl_ocr_results_${timestamp}.txt`;
+
+      // ダウンロード
+      downloadFile(
+        combinedText,
+        fileName,
+        'text/plain;charset=utf-8'
+      );
+    });
+
+  document
+    .getElementById('download-xml-button')
+    .addEventListener('click', () => {
+      if (processedResults.length === 0) return;
+
+      // 画像名の配列を作成
+      const imageNames = selectedImages.map(
+        (image, index) =>
+          image.file.name || `image_${index + 1}`
+      );
+
+      // 統合XMLを生成
+      const combinedXML =
+        ocr.outputGenerator.generateCombinedXML(
+          processedResults,
+          imageNames
+        );
+
+      // ファイル名を生成（現在の日時を含める）
+      const timestamp = new Date()
+        .toISOString()
+        .replace(/[:.]/g, '-')
+        .substring(0, 19);
+      const fileName = `ndl_ocr_results_${timestamp}.xml`;
+
+      // ダウンロード
+      downloadFile(
+        combinedXML,
+        fileName,
+        'application/xml;charset=utf-8'
+      );
+    });
+
+  document
+    .getElementById('download-json-button')
+    .addEventListener('click', () => {
+      if (processedResults.length === 0) return;
+
+      // 画像名の配列を作成
+      const imageNames = selectedImages.map(
+        (image, index) =>
+          image.file.name || `image_${index + 1}`
+      );
+
+      // 統合JSONを生成
+      const combinedJSON =
+        ocr.outputGenerator.generateCombinedJSON(
+          processedResults,
+          imageNames
+        );
+
+      // JSONを文字列に変換（整形して読みやすく）
+      const jsonString = JSON.stringify(
+        combinedJSON,
+        null,
+        2
+      );
+
+      // ファイル名を生成（現在の日時を含める）
+      const timestamp = new Date()
+        .toISOString()
+        .replace(/[:.]/g, '-')
+        .substring(0, 19);
+      const fileName = `ndl_ocr_results_${timestamp}.json`;
+
+      // ダウンロード
+      downloadFile(
+        jsonString,
+        fileName,
+        'application/json;charset=utf-8'
+      );
+    });
+
+  // コピーボタンの機能を追加
+  const copyButtons =
+    document.querySelectorAll('.copy-button');
+
+  // 各ボタンにイベントリスナーを追加
+  copyButtons.forEach((button) => {
+    button.addEventListener('click', () => {
+      // コピー対象の要素IDを取得
+      const targetId = button.getAttribute('data-target');
+      const targetElement =
+        document.getElementById(targetId);
+
+      // テキストをコピー
+      const text = targetElement.textContent;
+      navigator.clipboard
+        .writeText(text)
+        .then(() => {
+          // コピー成功時のフィードバック表示
+          const feedback = button.nextElementSibling;
+          feedback.classList.add('show');
+
+          // 2秒後にフィードバックを非表示
+          setTimeout(() => {
+            feedback.classList.remove('show');
+          }, 2000);
+        })
+        .catch((err) => {
+          console.error('コピーに失敗しました:', err);
+          alert('コピーに失敗しました。');
+        });
+    });
+  });
 });

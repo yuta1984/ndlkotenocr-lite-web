@@ -308,6 +308,165 @@ export class OutputGenerator {
   }
 
   /**
+   * 全ての検出結果を統合したXML形式で出力を生成
+   *
+   * @param {Array} resultsArray 複数の処理結果の配列
+   * @param {Array} imageNames 画像名の配列
+   * @returns {string} 統合されたXML形式の出力
+   */
+  generateCombinedXML(resultsArray, imageNames = []) {
+    console.log(
+      `出力生成: 統合XML形式で出力を生成します (${resultsArray.length}ファイル)`
+    );
+
+    // 検出結果が空の場合は空のXMLを返す
+    if (!resultsArray || resultsArray.length === 0) {
+      return `<?xml version="1.0" encoding="${this.config.xml.encoding}"?>
+<document>
+</document>`;
+    }
+
+    // XMLヘッダー
+    let xml = `<?xml version="1.0" encoding="${this.config.xml.encoding}"?>
+<document>
+`;
+
+    // 各画像の結果をXML要素として追加
+    for (let i = 0; i < resultsArray.length; i++) {
+      const result = resultsArray[i];
+      const imageName = imageNames[i] || `image_${i + 1}`;
+
+      // 画像情報
+      xml += `  <image name="${imageName}" width="${result.json.document.image.width}" height="${result.json.document.image.height}">\n`;
+
+      // 各検出結果をXML要素として追加
+      for (let j = 0; j < result.detections.length; j++) {
+        const detection = result.detections[j];
+        const [x1, y1, x2, y2] = detection.box;
+        const text = this._escapeXml(detection.text || '');
+
+        let attributes = `id="${j + 1}" x="${Math.round(
+          x1
+        )}" y="${Math.round(y1)}" width="${Math.round(
+          x2 - x1
+        )}" height="${Math.round(y2 - y1)}"`;
+
+        // 信頼度スコアを含める場合
+        if (
+          this.config.xml.includeConfidence &&
+          detection.score !== undefined
+        ) {
+          attributes += ` confidence="${detection.score.toFixed(
+            4
+          )}"`;
+        }
+
+        xml += `    <text ${attributes}>${text}</text>\n`;
+      }
+
+      // 画像要素を閉じる
+      xml += `  </image>\n`;
+    }
+
+    // XMLフッター
+    xml += `</document>`;
+
+    return xml;
+  }
+
+  /**
+   * 全ての検出結果を統合したJSON形式で出力を生成
+   *
+   * @param {Array} resultsArray 複数の処理結果の配列
+   * @param {Array} imageNames 画像名の配列
+   * @returns {Object} 統合されたJSON形式の出力
+   */
+  generateCombinedJSON(resultsArray, imageNames = []) {
+    console.log(
+      `出力生成: 統合JSON形式で出力を生成します (${resultsArray.length}ファイル)`
+    );
+
+    // 検出結果が空の場合は空のJSONを返す
+    if (!resultsArray || resultsArray.length === 0) {
+      return {
+        document: {
+          images: [],
+        },
+      };
+    }
+
+    // 各画像の結果をJSON要素として追加
+    const images = [];
+    for (let i = 0; i < resultsArray.length; i++) {
+      const result = resultsArray[i];
+      const imageName = imageNames[i] || `image_${i + 1}`;
+
+      // 画像情報とテキスト要素を取得
+      const imageData = result.json.document.image;
+      imageData.name = imageName; // 画像名を更新
+
+      images.push(imageData);
+    }
+
+    // JSON構造を作成
+    const jsonOutput = {
+      document: {
+        images: images,
+      },
+    };
+
+    // メタデータを含める場合
+    if (this.config.json.includeMetadata) {
+      jsonOutput.metadata = {
+        timestamp: new Date().toISOString(),
+        version: '1.0.0',
+        engine: 'NDLKotenOCR Web',
+        fileCount: resultsArray.length,
+      };
+    }
+
+    return jsonOutput;
+  }
+
+  /**
+   * 全ての検出結果を統合したテキスト形式で出力を生成
+   *
+   * @param {Array} resultsArray 複数の処理結果の配列
+   * @param {Array} imageNames 画像名の配列
+   * @returns {string} 統合されたテキスト形式の出力
+   */
+  generateCombinedTXT(resultsArray, imageNames = []) {
+    console.log(
+      `出力生成: 統合テキスト形式で出力を生成します (${resultsArray.length}ファイル)`
+    );
+
+    // 検出結果が空の場合は空の文字列を返す
+    if (!resultsArray || resultsArray.length === 0) {
+      return '';
+    }
+
+    // 各画像の結果のテキストを結合
+    let combinedText = '';
+    for (let i = 0; i < resultsArray.length; i++) {
+      const result = resultsArray[i];
+      const imageName = imageNames[i] || `image_${i + 1}`;
+
+      // 画像名をヘッダーとして追加
+      combinedText += `===== ${imageName} =====\n`;
+
+      // テキスト結果を追加
+      combinedText += result.text;
+
+      // 画像間の区切り
+      if (i < resultsArray.length - 1) {
+        combinedText += '\n\n';
+      }
+    }
+
+    return combinedText;
+  }
+
+  /**
    * XMLで使用される特殊文字をエスケープ
    *
    * @param {string} str エスケープする文字列

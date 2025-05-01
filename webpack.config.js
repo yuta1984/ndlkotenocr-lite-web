@@ -45,6 +45,11 @@ module.exports = (env, argv) => {
             to: 'config',
             noErrorOnMissing: true,
           },
+          {
+            from: 'public',
+            to: 'public',
+            noErrorOnMissing: true,
+          },
         ],
       }),
     ],
