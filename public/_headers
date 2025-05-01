@@ -1,0 +1,9 @@
+# バイナリファイルのMIMEタイプとキャッシュ制御
+/*.wasm
+  Content-Type: application/wasm
+  Cache-Control: public, max-age=31536000, immutable
+  Content-Encoding: gzip
+
+/*.onnx
+  Content-Type: application/octet-stream
+  Cache-Control: public, max-age=31536000, immutable
