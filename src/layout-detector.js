@@ -305,7 +305,6 @@ export class RTMDet {
       const y2 = dets[i * 5 + 3];
       const score = dets[i * 5 + 4];
       const classId = Number(labels[i]);
-      console.log({ metadata });
       if (score >= this.config.scoreThreshold) {
         // ✅ 入力画像のサイズ（model input）→ 元画像サイズへ変換
         const normX1 = x1 / this.config.inputShape[3]; // width
@@ -472,19 +471,6 @@ export class RTMDet {
         this.session.inputNames[0]
       );
       const outputs = await this.session.run(feeds);
-
-      console.log(
-        '[Detect] 出力キー:',
-        this.session.outputNames
-      );
-      for (const name of this.session.outputNames) {
-        console.log(`[Detect] 出力: ${name}`);
-        console.log('  dims:', outputs[name].dims);
-        console.log(
-          '  data（先頭20）:',
-          outputs[name].data.slice(0, 20)
-        );
-      }
 
       const detections = this.postprocess(
         outputs,

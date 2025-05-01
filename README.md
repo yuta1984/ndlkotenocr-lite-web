@@ -55,8 +55,8 @@ npm run build
 
 このアプリケーションは、以下の ONNX モデルファイルを使用します：
 
-- `models/rtmdet.onnx`: レイアウト認識モデル
-- `models/parseq.onnx`: 文字認識モデル
+- `models/rtmdet-s-1280x1280.onnx`: レイアウト認識モデル
+- `models/parseq-ndl-32x384-tiny-10.onnx`: 文字認識モデル
 
 ## プロジェクト構造
 
@@ -70,8 +70,8 @@ ndlkotenocr-web/
 │   ├── reading-order.js    # 読み順処理モジュール
 │   └── output-generator.js # 出力生成モジュール
 ├── models/                 # ONNXモデルファイル
-│   ├── rtmdet.onnx
-│   └── parseq.onnx
+│   ├── rtmdet-s-1280x1280.onnx
+│   └── parseq-ndl-32x384-tiny-10.onnx
 └── config/                 # 設定ファイル
     ├── ndl.yaml
     └── NDLmoji.yaml
@@ -79,7 +79,7 @@ ndlkotenocr-web/
 
 ## ライセンス
 
-このプロジェクトは [MIT ライセンス](LICENSE) の下で公開されています。
+このプロジェクトは [Creative Commons Attribution 4.0 International](https://creativecommons.org/licenses/by/4.0/deed.en)の下で公開されています。
 
 ## 謝辞
 

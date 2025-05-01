@@ -70,7 +70,7 @@ export class NDLKotenOCR {
         layoutConfigPath
       );
       this.updateProgress(
-        25,
+        10,
         'レイアウト認識モデルをロードしました'
       );
 
@@ -86,7 +86,7 @@ export class NDLKotenOCR {
         'config/NDLmoji.yaml'
       );
       this.updateProgress(
-        50,
+        15,
         '文字認識モデルをロードしました'
       );
 
@@ -96,7 +96,7 @@ export class NDLKotenOCR {
       this.readingOrderProcessor =
         new ReadingOrderProcessor(readingOrderConfig);
       this.updateProgress(
-        65,
+        20,
         '読み順処理の設定を読み込みました'
       );
 
@@ -108,12 +108,12 @@ export class NDLKotenOCR {
         outputConfig
       );
       this.updateProgress(
-        75,
+        30,
         '出力生成の設定を読み込みました'
       );
 
       this.initialized = true;
-      this.updateProgress(100, '初期化完了');
+      //this.updateProgress(100, '初期化完了');
     } catch (error) {
       console.error('初期化エラー:', error);
       throw new Error(
@@ -150,21 +150,37 @@ export class NDLKotenOCR {
       );
     }
 
-    this.updateProgress(0, '処理を開始します');
+    this.updateProgress(40, '処理を開始します');
+    // UIの更新を許可するためのマイクロタスク
+    await new Promise((resolve) => setTimeout(resolve, 0));
 
     try {
       // 1. レイアウト検出
-      this.updateProgress(10, 'レイアウト検出中...');
+      this.updateProgress(45, 'レイアウト検出中...');
+      // UIの更新を許可するためのマイクロタスク
+      await new Promise((resolve) =>
+        setTimeout(resolve, 0)
+      );
+
       const detections = await this.layoutDetector.detect(
         imageData
       );
       this.updateProgress(
-        40,
+        50,
         `${detections.length}個のテキスト領域を検出しました`
+      );
+      // UIの更新を許可するためのマイクロタスク
+      await new Promise((resolve) =>
+        setTimeout(resolve, 0)
       );
 
       // 2. テキスト認識
       this.updateProgress(50, '文字認識中...');
+      // UIの更新を許可するためのマイクロタスク
+      await new Promise((resolve) =>
+        setTimeout(resolve, 0)
+      );
+
       const recognizedDetections = [];
       let count = 0;
       for (const detection of detections) {
@@ -173,7 +189,6 @@ export class NDLKotenOCR {
           imageData,
           detection.box
         );
-        console.log(detection.box);
         // テキスト認識
         const text = await this.textRecognizer.read(
           lineImage
@@ -188,10 +203,21 @@ export class NDLKotenOCR {
           50 + Math.floor((count / detections.length) * 30),
           `文字認識中... (${count}/${detections.length})`
         );
+
+        // UIの更新を許可するためのマイクロタスク
+        // 各テキスト領域の処理後に追加
+        await new Promise((resolve) =>
+          setTimeout(resolve, 0)
+        );
       }
 
       // 3. 読み順処理
       this.updateProgress(80, '読み順処理中...');
+      // UIの更新を許可するためのマイクロタスク
+      await new Promise((resolve) =>
+        setTimeout(resolve, 0)
+      );
+
       const orderedDetections =
         this.readingOrderProcessor.process(
           recognizedDetections,
@@ -201,6 +227,11 @@ export class NDLKotenOCR {
 
       // 4. 出力生成
       this.updateProgress(90, '結果生成中...');
+      // UIの更新を許可するためのマイクロタスク
+      await new Promise((resolve) =>
+        setTimeout(resolve, 0)
+      );
+
       const results = {
         detections: orderedDetections,
         xml: this.outputGenerator.generateXML(
@@ -221,6 +252,11 @@ export class NDLKotenOCR {
       };
 
       this.updateProgress(100, '処理完了');
+      // UIの更新を許可するためのマイクロタスク
+      await new Promise((resolve) =>
+        setTimeout(resolve, 0)
+      );
+
       return results;
     } catch (error) {
       console.error('処理エラー:', error);
@@ -312,10 +348,32 @@ export class NDLKotenOCR {
 
 // ブラウザ環境での初期化処理
 document.addEventListener('DOMContentLoaded', () => {
+  // タブ切り替え機能
+  const tabs = document.querySelectorAll('.tab');
+  tabs.forEach((tab) => {
+    tab.addEventListener('click', function () {
+      // アクティブなタブを切り替え
+      document
+        .querySelector('.tab.active')
+        .classList.remove('active');
+      this.classList.add('active');
+
+      // タブコンテンツを切り替え
+      const tabName = this.getAttribute('data-tab');
+      document
+        .querySelector('.tab-content.active')
+        .classList.remove('active');
+      document
+        .getElementById(`${tabName}-content`)
+        .classList.add('active');
+    });
+  });
+
   const imageUpload =
     document.getElementById('image-upload');
-  const imagePreview =
-    document.getElementById('image-preview');
+  const previewContainer = document.getElementById(
+    'image-preview-container'
+  );
   const processButton = document.getElementById(
     'process-button'
   );
@@ -326,35 +384,266 @@ document.addEventListener('DOMContentLoaded', () => {
   const textResult = document.getElementById('text-result');
   const xmlResult = document.getElementById('xml-result');
   const jsonResult = document.getElementById('json-result');
+  const imageSelector = document.getElementById(
+    'image-selector'
+  );
+  const prevImageButton = document.getElementById(
+    'prev-image-button'
+  );
+  const nextImageButton = document.getElementById(
+    'next-image-button'
+  );
+
+  // 選択された画像を保持する配列
+  let selectedImages = [];
+  // 処理結果を保持する配列
+  let processedResults = [];
+  // 現在処理中の画像インデックス
+  let currentImageIndex = 0;
+  // 現在表示中の結果インデックス
+  let currentResultIndex = 0;
+  // 全体の進捗状況
+  let overallProgress = 0;
 
   // NDLKotenOCRインスタンスの作成
   const ocr = new NDLKotenOCR();
 
+  // サムネイル生成関数
+  function createThumbnail(file, index) {
+    return new Promise((resolve) => {
+      const reader = new FileReader();
+      reader.onload = function (event) {
+        const thumbnailWrapper =
+          document.createElement('div');
+        thumbnailWrapper.className = 'thumbnail-wrapper';
+
+        const thumbnail = document.createElement('img');
+        thumbnail.className = 'thumbnail';
+        thumbnail.src = event.target.result;
+        thumbnail.alt = `画像 ${index + 1}`;
+
+        const label = document.createElement('div');
+        label.className = 'thumbnail-label';
+        label.textContent =
+          file.name.length > 15
+            ? file.name.substring(0, 12) + '...'
+            : file.name;
+
+        thumbnailWrapper.appendChild(thumbnail);
+        thumbnailWrapper.appendChild(label);
+
+        resolve({
+          element: thumbnailWrapper,
+          dataUrl: event.target.result,
+          file: file,
+        });
+      };
+      reader.readAsDataURL(file);
+    });
+  }
+
+  // 画像選択時の処理
+  imageUpload.addEventListener(
+    'change',
+    async function (e) {
+      // 既存のサムネイルをクリア
+      previewContainer.innerHTML = '';
+      selectedImages = [];
+
+      if (e.target.files.length > 0) {
+        const files = Array.from(e.target.files).filter(
+          (file) => file.type.match('image.*')
+        );
+
+        if (files.length === 0) return;
+
+        // サムネイル生成と表示
+        const thumbnailPromises = files.map((file, index) =>
+          createThumbnail(file, index)
+        );
+
+        const thumbnails = await Promise.all(
+          thumbnailPromises
+        );
+        selectedImages = thumbnails;
+
+        // サムネイルをコンテナに追加
+        thumbnails.forEach((thumbnail) => {
+          previewContainer.appendChild(thumbnail.element);
+        });
+
+        // 処理ボタンを有効化
+        processButton.disabled = false;
+      } else {
+        processButton.disabled = true;
+      }
+    }
+  );
+
+  // ドラッグ&ドロップ処理
+  const uploadSection = document.querySelector(
+    '.upload-section'
+  );
+
+  uploadSection.addEventListener('dragover', function (e) {
+    e.preventDefault();
+    this.style.borderColor = '#4CAF50';
+  });
+
+  uploadSection.addEventListener('dragleave', function () {
+    this.style.borderColor = '#ccc';
+  });
+
+  uploadSection.addEventListener(
+    'drop',
+    async function (e) {
+      e.preventDefault();
+      this.style.borderColor = '#ccc';
+
+      const files = Array.from(e.dataTransfer.files).filter(
+        (file) => file.type.match('image.*')
+      );
+
+      if (files.length === 0) return;
+
+      // ファイル入力要素にファイルを設定
+      const dataTransfer = new DataTransfer();
+      files.forEach((file) => dataTransfer.items.add(file));
+      imageUpload.files = dataTransfer.files;
+
+      // 既存のサムネイルをクリア
+      previewContainer.innerHTML = '';
+      selectedImages = [];
+
+      // サムネイル生成と表示
+      const thumbnailPromises = files.map((file, index) =>
+        createThumbnail(file, index)
+      );
+
+      const thumbnails = await Promise.all(
+        thumbnailPromises
+      );
+      selectedImages = thumbnails;
+
+      // サムネイルをコンテナに追加
+      thumbnails.forEach((thumbnail) => {
+        previewContainer.appendChild(thumbnail.element);
+      });
+
+      // 処理ボタンを有効化
+      processButton.disabled = false;
+    }
+  );
+
   // 進捗コールバック
   const updateProgress = (progress, message) => {
-    progressBar.value = progress;
-    console.log(`進捗: ${progress}% - ${message}`);
+    // 現在の画像の進捗を全体の進捗に反映
+    const singleImageWeight = 100 / selectedImages.length;
+    overallProgress =
+      currentImageIndex * singleImageWeight +
+      (progress * singleImageWeight) / 100;
+
+    progressBar.value = Math.round(overallProgress);
+
+    // 進捗メッセージに画像番号を追加
+    const overallMessage = `画像 ${currentImageIndex + 1}/${
+      selectedImages.length
+    }: ${message}`;
+
+    // 画面上の進捗メッセージを更新
+    const loadingMessage = document.getElementById(
+      'loading-message'
+    );
+    if (loadingMessage) {
+      loadingMessage.textContent = overallMessage;
+    } else {
+      console.error(
+        'loading-message 要素が見つかりませんでした'
+      );
+    }
+
+    console.log(
+      `進捗: ${Math.round(
+        overallProgress
+      )}% - ${overallMessage}`
+    );
   };
+
+  // 画像セレクタの変更イベント
+  imageSelector.addEventListener('change', function () {
+    const selectedIndex = this.selectedIndex;
+    if (
+      selectedIndex >= 0 &&
+      selectedIndex < processedResults.length
+    ) {
+      displayResult(selectedIndex);
+    }
+  });
+
+  // 前の画像ボタンのイベントリスナー
+  prevImageButton.addEventListener('click', function () {
+    if (currentResultIndex > 0) {
+      displayResult(currentResultIndex - 1);
+    }
+  });
+
+  // 次の画像ボタンのイベントリスナー
+  nextImageButton.addEventListener('click', function () {
+    if (currentResultIndex < processedResults.length - 1) {
+      displayResult(currentResultIndex + 1);
+    }
+  });
+
+  // ナビゲーションボタンの状態を更新
+  function updateNavigationButtons() {
+    prevImageButton.disabled = currentResultIndex <= 0;
+    nextImageButton.disabled =
+      currentResultIndex >= processedResults.length - 1;
+  }
+
+  // 結果表示関数
+  function displayResult(index) {
+    currentResultIndex = index;
+    const result = processedResults[index];
+
+    // セレクタの選択を更新
+    imageSelector.selectedIndex = index;
+
+    // 結果の表示
+    textResult.textContent = result.text;
+    xmlResult.textContent = result.xml;
+    jsonResult.textContent = JSON.stringify(
+      result.json,
+      null,
+      2
+    );
+
+    // 画像の取得
+    const img = new Image();
+    img.onload = function () {
+      // 結果の可視化
+      drawResults(resultCanvas, img, result.detections);
+    };
+    img.src = selectedImages[index].dataUrl;
+
+    // ナビゲーションボタンの状態を更新
+    updateNavigationButtons();
+  }
 
   // 初期化ボタンのイベントリスナー
   processButton.addEventListener('click', async () => {
     try {
+      if (selectedImages.length === 0) {
+        alert('画像を選択してください');
+        return;
+      }
+
       document.getElementById('loading').style.display =
         'block';
       processButton.disabled = true;
-
-      // 画像の取得
-      const canvas = document.createElement('canvas');
-      const ctx = canvas.getContext('2d');
-      canvas.width = imagePreview.naturalWidth;
-      canvas.height = imagePreview.naturalHeight;
-      ctx.drawImage(imagePreview, 0, 0);
-      const imageData = ctx.getImageData(
-        0,
-        0,
-        canvas.width,
-        canvas.height
-      );
+      processedResults = [];
+      currentImageIndex = 0;
+      overallProgress = 0;
 
       // 初期化（実際のアプリケーションでは、起動時に一度だけ行う）
       if (!ocr.initialized) {
@@ -369,42 +658,71 @@ document.addEventListener('DOMContentLoaded', () => {
         );
       }
 
-      // 処理実行
-      const results = await ocr.process(imageData, {
-        imageName: 'uploaded_image',
+      // 各画像を順番に処理
+      for (let i = 0; i < selectedImages.length; i++) {
+        currentImageIndex = i;
+        const imageInfo = selectedImages[i];
+
+        // 画像の取得
+        const img = new Image();
+        await new Promise((resolve) => {
+          img.onload = resolve;
+          img.src = imageInfo.dataUrl;
+        });
+
+        const canvas = document.createElement('canvas');
+        const ctx = canvas.getContext('2d');
+        canvas.width = img.naturalWidth;
+        canvas.height = img.naturalHeight;
+        ctx.drawImage(img, 0, 0);
+        const imageData = ctx.getImageData(
+          0,
+          0,
+          canvas.width,
+          canvas.height
+        );
+
+        // 処理実行
+        const results = await ocr.process(imageData, {
+          imageName:
+            imageInfo.file.name || `image_${i + 1}`,
+        });
+
+        // 結果を保存
+        processedResults.push(results);
+      }
+
+      // 画像セレクタの設定
+      imageSelector.innerHTML = '';
+      selectedImages.forEach((image, index) => {
+        const option = document.createElement('option');
+        option.value = index;
+        option.textContent =
+          image.file.name || `画像 ${index + 1}`;
+        imageSelector.appendChild(option);
       });
 
-      // 結果の表示
-      textResult.textContent = results.text;
-      xmlResult.textContent = results.xml;
-      jsonResult.textContent = JSON.stringify(
-        results.json,
-        null,
-        2
-      );
+      // 最初の結果を表示
+      if (processedResults.length > 0) {
+        currentResultIndex = 0;
+        displayResult(0);
 
-      // 結果の可視化
-      drawResults(
-        resultCanvas,
-        imagePreview,
-        results.detections
-      );
+        // ナビゲーションボタンの有効化（複数画像がある場合）
+        prevImageButton.disabled = true;
+        nextImageButton.disabled =
+          processedResults.length <= 1;
+      }
 
       // 結果セクションの表示
-      document.getElementById('loading').style.display =
-        'none';
+
       document.querySelector(
         '.result-section'
       ).style.display = 'block';
-      processButton.disabled = false;
     } catch (error) {
       console.error('エラー:', error);
       alert(
         `処理中にエラーが発生しました: ${error.message}`
       );
-      document.getElementById('loading').style.display =
-        'none';
-      processButton.disabled = false;
     }
   });
 

@@ -67,6 +67,38 @@
         max-width: 100%;
         margin-top: 20px;
       }
+      .thumbnails-container {
+        display: flex;
+        flex-wrap: wrap;
+        justify-content: center;
+        gap: 10px;
+        margin-top: 20px;
+      }
+      .thumbnail {
+        width: 150px;
+        height: 150px;
+        object-fit: contain;
+        border: 1px solid #ddd;
+        border-radius: 4px;
+        padding: 5px;
+        background-color: #f9f9f9;
+      }
+      .thumbnail-wrapper {
+        position: relative;
+        margin-bottom: 10px;
+      }
+      .thumbnail-label {
+        position: absolute;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        background-color: rgba(0, 0, 0, 0.6);
+        color: white;
+        text-align: center;
+        padding: 3px 0;
+        font-size: 12px;
+        border-radius: 0 0 4px 4px;
+      }
       #loading {
         display: none;
         text-align: center;
@@ -102,6 +134,15 @@
         background-color: #cccccc;
         cursor: not-allowed;
       }
+      .nav-button {
+        background-color: #2196f3;
+        padding: 8px 15px;
+        font-size: 14px;
+        min-width: 100px;
+      }
+      .nav-button:hover:not(:disabled) {
+        background-color: #0b7dda;
+      }
     </style>
   </head>
   <body>
@@ -114,15 +155,14 @@
           type="file"
           id="image-upload"
           accept="image/*"
+          multiple
         />
         <p>または画像をここにドラッグ&ドロップ</p>
-        <div id="image-preview-container">
-          <img
-            id="image-preview"
-            style="display: none"
-            src="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7"
-            alt="画像プレビュー"
-          />
+        <div
+          id="image-preview-container"
+          class="thumbnails-container"
+        >
+          <!-- サムネイルはJavaScriptで動的に追加されます -->
         </div>
         <button id="process-button" disabled>
           OCR処理を実行
@@ -130,7 +170,7 @@
       </div>
 
       <div id="loading">
-        <p>処理中...</p>
+        <p id="loading-message">処理中...</p>
         <progress
           id="progress-bar"
           value="0"
@@ -140,6 +180,41 @@
 
       <div class="result-section" style="display: none">
         <h2>OCR結果</h2>
+
+        <div
+          id="image-selector-container"
+          style="margin-bottom: 20px; text-align: center"
+        >
+          <div
+            style="
+              display: flex;
+              justify-content: center;
+              align-items: center;
+              gap: 10px;
+            "
+          >
+            <button
+              id="prev-image-button"
+              class="nav-button"
+              disabled
+            >
+              &lt; 前の画像
+            </button>
+            <div>
+              <label for="image-selector"
+                >画像を選択:
+              </label>
+              <select id="image-selector"></select>
+            </div>
+            <button
+              id="next-image-button"
+              class="nav-button"
+              disabled
+            >
+              次の画像 &gt;
+            </button>
+          </div>
+        </div>
 
         <div class="canvas-container">
           <canvas id="result-canvas"></canvas>
@@ -168,122 +243,5 @@
     </div>
 
     <script src="bundle.js"></script>
-    <script>
-      document.addEventListener(
-        'DOMContentLoaded',
-        function () {
-          // タブ切り替え
-          const tabs = document.querySelectorAll('.tab');
-          tabs.forEach((tab) => {
-            tab.addEventListener('click', function () {
-              // アクティブなタブを切り替え
-              document
-                .querySelector('.tab.active')
-                .classList.remove('active');
-              this.classList.add('active');
-
-              // タブコンテンツを切り替え
-              const tabName = this.getAttribute('data-tab');
-              document
-                .querySelector('.tab-content.active')
-                .classList.remove('active');
-              document
-                .getElementById(`${tabName}-content`)
-                .classList.add('active');
-            });
-          });
-
-          // 画像アップロード処理
-          const imageUpload =
-            document.getElementById('image-upload');
-          const imagePreview =
-            document.getElementById('image-preview');
-          const processButton = document.getElementById(
-            'process-button'
-          );
-
-          imageUpload.addEventListener(
-            'change',
-            function (e) {
-              const file = e.target.files[0];
-              if (file) {
-                const reader = new FileReader();
-                reader.onload = function (event) {
-                  imagePreview.src = event.target.result;
-                  imagePreview.style.display = 'block';
-                  processButton.disabled = false;
-                };
-                reader.readAsDataURL(file);
-              }
-            }
-          );
-
-          // ドラッグ&ドロップ処理
-          const uploadSection = document.querySelector(
-            '.upload-section'
-          );
-
-          uploadSection.addEventListener(
-            'dragover',
-            function (e) {
-              e.preventDefault();
-              this.style.borderColor = '#4CAF50';
-            }
-          );
-
-          uploadSection.addEventListener(
-            'dragleave',
-            function () {
-              this.style.borderColor = '#ccc';
-            }
-          );
-
-          uploadSection.addEventListener(
-            'drop',
-            function (e) {
-              e.preventDefault();
-              this.style.borderColor = '#ccc';
-
-              const file = e.dataTransfer.files[0];
-              if (file && file.type.match('image.*')) {
-                imageUpload.files = e.dataTransfer.files;
-                const reader = new FileReader();
-                reader.onload = function (event) {
-                  imagePreview.src = event.target.result;
-                  imagePreview.style.display = 'block';
-                  processButton.disabled = false;
-                };
-                reader.readAsDataURL(file);
-              }
-            }
-          );
-
-          // OCR処理実行ボタン
-          processButton.addEventListener(
-            'click',
-            function () {
-              // ここでOCR処理を呼び出す
-              // 実際の処理はbundle.jsに実装
-              document.getElementById(
-                'loading'
-              ).style.display = 'block';
-              this.disabled = true;
-
-              // 処理完了後に結果を表示（実際はbundle.jsから呼び出される）
-              // この部分はデモ用のダミーコード
-              setTimeout(function () {
-                document.getElementById(
-                  'loading'
-                ).style.display = 'none';
-                document.querySelector(
-                  '.result-section'
-                ).style.display = 'block';
-                processButton.disabled = false;
-              }, 2000);
-            }
-          );
-        }
-      );
-    </script>
   </body>
 </html>
